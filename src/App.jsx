@@ -1,11 +1,23 @@
-import { useState } from "react";
-import "./App.css"
+import { Routes, Route } from "react-router-dom";
+import "./App.css";
+import Home from "./pages/Home";
+import Auth from "./pages/Auth";
+import Checkout from "./pages/Chechout";
+import Navbar from "./components/NavBar/Navbar";
+import AuthProvider from "./context/AuthContext";
 
 function App() {
   return (
-    <div>
-      
-    </div>
+    <AuthProvider>
+      <div className="app">
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/checkout" element={<Checkout />} />
+        </Routes>
+      </div>
+    </AuthProvider>
   );
 }
 
