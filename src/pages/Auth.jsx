@@ -31,8 +31,6 @@ export default function Auth() {
     } else {
       setError(result.error);
     }
-
-    console.log({result});
   }
 
   return (
