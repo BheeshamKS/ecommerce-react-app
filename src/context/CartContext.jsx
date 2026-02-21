@@ -1,59 +1,83 @@
 import { createContext, useContext, useState } from "react";
+import { getProductById } from "../data/products";
+import { get } from "react-hook-form";
 
-const AuthContext = createContext(null);
+const CartContext = createContext(null);
 
-export default function AuthProvider({ children }) {
-  const [user, setUser] = useState(
-    localStorage.getItem("currentUserEmail") 
-    ? { email: localStorage.getItem("currentUserEmail") } 
-    : null
-  );
+export default function CartProvider({ children }) {
+  const [cartItems, setCartItems] = useState([]);
 
-  function signUp(email, password) {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-
-    if (users.find((u) => u.email === email)) {
-      return { success: false, error: "Email already exists"};
+  function addToCart(productId) {
+    const existing = cartItems.find((item) => item.id === productId);
+    if (existing) {
+      const currentQuantity = existing.quantity;
+      const updatedCartItems = cartItems.map((item) =>
+        item.id === productId
+          ? { id: productId, quantity: currentQuantity + 1 }
+          : item,
+      );
+      setCartItems(updatedCartItems);
+    } else {
+      setCartItems([...cartItems, { id: productId, quantity: 1 }]);
     }
-    const newUser = { email, password };
-    users.push(newUser);
-    localStorage.setItem("users", JSON.stringify(users));  
-    localStorage.setItem("currentUserEmail", email);
-
-    setUser({ email });
-
-    return { success: true };
   }
 
-  function login(email, password) {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const user = users.find((u) => u.email === email && u.password === password);
-
-    if (!user) {
-      return { success: false, error: "Invalid email or password" }
-    }
-
-    localStorage.setItem("currentUserEmail", email);
-    setUser({ email });
-
-    return { success: true }
+  function getCartItemsWithProducts() {
+    return cartItems
+      .map((item) => ({
+        ...item,
+        product: getProductById(item.id),
+      }))
+      .filter((item) => item.product);
   }
 
-  function logout() {
-    localStorage.removeItem("currentUserEmail");
-    setUser(null);
+  function removeFromCart(productId) {
+    setCartItems(cartItems.filter((item) => item.id !== productId));
+  }
+
+  function updateQuantity(productid, quantity) {
+    if (quantity <= 0) {
+      removeFromCart(productid);
+      return;
+    }
+    setCartItems(
+      cartItems.map((item) =>
+        item.id === productid ? { ...item, quantity } : item,
+      ),
+    );
+  }
+
+  function getCartTotal() {
+    const total = cartItems.reduce((total, item) => {
+      const product = getProductById(item.id);
+      return total + (product ? product.price * item.quantity : 0);
+    }, 0);
+    return total;
+  }
+
+  function clearCart() {
+    setCartItems([]);
   }
 
   return (
-    <AuthContext.Provider value={{ signUp, user, logout, login }}>
-      { children }
-    </AuthContext.Provider>
+    <CartContext.Provider
+      value={{
+        cartItems,
+        addToCart,
+        getCartItemsWithProducts,
+        removeFromCart,
+        updateQuantity,
+        getCartTotal,
+        clearCart,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
   );
 }
 
-
-export function useAuth() {
-  const context = useContext(AuthContext);
+export function useCart() {
+  const context = useContext(CartContext);
 
   return context;
 }
